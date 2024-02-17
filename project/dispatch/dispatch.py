@@ -11,6 +11,8 @@ from omegaconf import DictConfig
 from project.task.default.dispatch import dispatch_config as dispatch_default_config
 from project.task.default.dispatch import dispatch_data as dispatch_default_data
 from project.task.default.dispatch import dispatch_train as dispatch_default_train
+
+# mnist_classification
 from project.task.mnist_classification.dispatch import (
     dispatch_config as dispatch_mnist_config,
 )
@@ -20,6 +22,18 @@ from project.task.mnist_classification.dispatch import (
 from project.task.mnist_classification.dispatch import (
     dispatch_train as dispatch_mnist_train,
 )
+
+# cifar10_classification
+from project.task.cifar10_classification.dispatch import (
+    dispatch_config as dispatch_cifar10_config,
+)
+from project.task.cifar10_classification.dispatch import (
+    dispatch_data as dispatch_cifar10_data,
+)
+from project.task.cifar10_classification.dispatch import (
+    dispatch_train as dispatch_cifar10_train,
+)
+
 from project.types.common import ConfigStructure, DataStructure, TrainStructure
 
 
@@ -45,6 +59,7 @@ def dispatch_train(cfg: DictConfig) -> TrainStructure:
     task_train_functions: list[Callable[[DictConfig], TrainStructure | None]] = [
         dispatch_default_train,
         dispatch_mnist_train,
+        dispatch_cifar10_train,
     ]
 
     # Match the first function which does not return None
@@ -79,10 +94,7 @@ def dispatch_data(cfg: DictConfig) -> DataStructure:
     # Create the list of task dispatches to try
     task_data_dependent_functions: list[
         Callable[[DictConfig], DataStructure | None]
-    ] = [
-        dispatch_mnist_data,
-        dispatch_default_data,
-    ]
+    ] = [dispatch_mnist_data, dispatch_default_data, dispatch_cifar10_data]
 
     # Match the first function which does not return None
     for task in task_data_dependent_functions:
@@ -117,6 +129,7 @@ def dispatch_config(cfg: DictConfig) -> ConfigStructure:
     """
     # Create the list of task dispatches to try
     task_config_functions: list[Callable[[DictConfig], ConfigStructure | None]] = [
+        dispatch_cifar10_config,
         dispatch_mnist_config,
         dispatch_default_config,
     ]

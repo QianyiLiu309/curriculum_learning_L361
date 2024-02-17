@@ -190,7 +190,7 @@ def load_FEMNIST_dataset(  # noqa: N802
 
 def get_dataloader_generators(
     partition_dir: Path,
-) -> tuple[ClientDataloaderConfig, FedDataloaderGen]:
+) -> tuple[ClientDataloaderGen, FedDataloaderGen]:
     """Return a function that loads a client's dataset.
 
     Parameters

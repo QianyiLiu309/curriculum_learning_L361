@@ -61,13 +61,13 @@ wandb_id: null
 # change the name
 wandb:
   setup:
-    project: curriculum_learning
+    project: self_paced_learning
     tags:
       - strategy_${strategy.name}
       - seed_${fed.seed}
       - dataset_${dataset.name}
       - task_${task.model_and_data}
-    entity: null
+    entity: fl-curriculum-learning
     mode: online
 
 # For Ray cluster usage

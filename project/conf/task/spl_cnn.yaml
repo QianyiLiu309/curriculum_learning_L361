@@ -2,9 +2,9 @@
 # These strings are constants used by the dispatcher to select functionality at runtime
 # Please implement all behaviour in the task-level dispatch.py file and then add the dispatch functions to the top-level dispatch.py
 # Choose the model and dataset
-model_and_data: CIFAR10_CNN
+model_and_data: SPL_CNN
 # Choose the train, test and server fed_eval functions
-train_structure: CIFAR10
+train_structure: SPL
 
 # Client fit config
 fit_config:

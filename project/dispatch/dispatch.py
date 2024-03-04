@@ -45,6 +45,17 @@ from project.task.femnist_classification.dispatch import (
     dispatch_train as dispatch_femnist_train,
 )
 
+# self_paced_learning
+from project.task.self_paced_learning.dispatch import (
+    dispatch_config as dispatch_self_paced_learning_config,
+)
+from project.task.self_paced_learning.dispatch import (
+    dispatch_data as dispatch_self_paced_learning_data,
+)
+from project.task.self_paced_learning.dispatch import (
+    dispatch_train as dispatch_self_paced_learning_train,
+)
+
 from project.types.common import ConfigStructure, DataStructure, TrainStructure
 
 
@@ -72,6 +83,7 @@ def dispatch_train(cfg: DictConfig) -> TrainStructure:
         dispatch_mnist_train,
         dispatch_cifar10_train,
         dispatch_femnist_train,
+        dispatch_self_paced_learning_train,
     ]
 
     # Match the first function which does not return None
@@ -107,6 +119,7 @@ def dispatch_data(cfg: DictConfig) -> DataStructure:
     task_data_dependent_functions: list[
         Callable[[DictConfig], DataStructure | None]
     ] = [
+        dispatch_self_paced_learning_data,
         dispatch_femnist_data,
         dispatch_cifar10_data,
         dispatch_mnist_data,
@@ -146,6 +159,7 @@ def dispatch_config(cfg: DictConfig) -> ConfigStructure:
     """
     # Create the list of task dispatches to try
     task_config_functions: list[Callable[[DictConfig], ConfigStructure | None]] = [
+        dispatch_self_paced_learning_config,
         dispatch_femnist_config,
         dispatch_cifar10_config,
         dispatch_mnist_config,

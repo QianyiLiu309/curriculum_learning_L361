@@ -61,7 +61,7 @@ wandb_id: null
 # change the name
 wandb:
   setup:
-    project: spl
+    project: curriculum_learning
     tags:
       - strategy_${strategy.name}
       - seed_${fed.seed}

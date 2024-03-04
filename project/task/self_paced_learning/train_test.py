@@ -138,16 +138,7 @@ def train(  # pylint: disable=too-many-arguments
     config: TrainConfig = TrainConfig(**_config)
     del _config
 
-    loss_threshold = get_loss_threshold(
-        net,
-        trainloader,
-        config.percentage,
-        config.device,
-    )
-    print(f"loss_threshold: {loss_threshold}")
-
     net.to(config.device)
-    net.train()
 
     criterion = nn.CrossEntropyLoss(reduction="none")
     optimizer = torch.optim.SGD(
@@ -156,7 +147,16 @@ def train(  # pylint: disable=too-many-arguments
     )
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
-    for _ in range(config.epochs):
+    for i in range(config.epochs):
+        loss_threshold = get_loss_threshold(
+            net,
+            trainloader,
+            config.percentage,
+            config.device,
+        )
+        print(f"loss_threshold for epoch {i}: {loss_threshold}")
+
+        net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
         for data, target in trainloader:
@@ -172,14 +172,19 @@ def train(  # pylint: disable=too-many-arguments
 
             # only learn on samples with loss < loss_threshold
             mask = losses <= loss_threshold
-            loss = (
-                losses * mask
-            ).sum() / mask.sum()  # shouldn't directly use mean() here
+            loss = (losses * mask).sum() / (
+                mask.sum() + 1e-10
+            )  # shouldn't directly use mean() here
 
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
             loss.backward()
             optimizer.step()
+        print(
+            f"Epoch {i + 1}, loss:"
+            f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
+            f" accuracy: {num_correct / len(trainloader.dataset)}"
+        )
 
     return len(cast(Sized, trainloader.dataset)), {
         "train_loss": final_epoch_per_sample_loss

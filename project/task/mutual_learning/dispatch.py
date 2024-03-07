@@ -142,4 +142,3 @@ def dispatch_data(cfg: DictConfig) -> DataStructure | None:
 
 
 dispatch_config = dispatch_default_config
-

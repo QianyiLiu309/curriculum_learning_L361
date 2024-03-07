@@ -102,11 +102,11 @@ def train(  # pylint: disable=too-many-arguments
         lr=config.learning_rate,
     )
     optimizer_personal = torch.optim.SGD(
-        personal_net.parameters(),
-        lr=config.learning_rate
+        personal_net.parameters(), lr=config.learning_rate
     )
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
+    softmax = nn.Softmax()
     for i in range(config.epochs):
         net.train()
         final_epoch_per_sample_loss = 0.0
@@ -121,14 +121,24 @@ def train(  # pylint: disable=too-many-arguments
             optimizer.zero_grad()
             output = net(data)
             output_personal = personal_net(data)
-            DL = 0.5 * (torch.sum(output_personal * torch.log(output_personal / output), dim=1) + 
-                        torch.sum(output * torch.log(output / output_personal), dim=1))
-            losses = criterion(output, target) + 0.001 * DL
-            # TODO: check 
-            #           1. net_personal 
+            output_prob = softmax(output)
+            output_personal_prob = softmax(output_personal)
+            dl = 0.5 * (
+                torch.sum(
+                    output_personal_prob
+                    * torch.log(output_personal_prob / output_prob),
+                    dim=1,
+                )
+                + torch.sum(
+                    output_prob * torch.log(output_prob / output_personal_prob), dim=1
+                )
+            )
+            losses = criterion(output, target) + 0.001 * dl
+            # TODO: check
+            #           1. net_personal
             #           2. set a trade-off param lambda
             #           3. dimension of KL
-            losses_personal = losses + 0.001 * DL
+            losses_personal = criterion(output_personal, target) + 0.001 * dl
 
             with torch.no_grad():
                 teacher_output = frozen_teacher_net(data)
@@ -139,9 +149,7 @@ def train(  # pylint: disable=too-many-arguments
             loss = (losses * mask).sum() / (
                 mask.sum() + 1e-10
             )  # shouldn't directly use mean() here
-            loss_personal = (losses_personal * mask).sum() / (
-                mask.sum() + 1e-10
-            )
+            loss_personal = (losses_personal * mask).sum() / (mask.sum() + 1e-10)
 
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
@@ -221,13 +229,14 @@ def test(
 
     net.to(config.device)
     net.eval()
+    personal_net = copy.deepcopy(net)
     personal_net.to(config.device)
     personal_net.eval()
 
     criterion = nn.CrossEntropyLoss()
     correct, per_sample_loss = 0, 0.0
     correct_personal, per_sample_loss_personal = 0, 0.0
-
+    softmax = nn.Softmax()
     with torch.no_grad():
         for images, labels in testloader:
             images, labels = (
@@ -238,25 +247,40 @@ def test(
             )
             outputs = net(images)
             outputs_personal = personal_net(images)
+            outputs_prob = softmax(outputs)
+            outputs_personal_prob = softmax(outputs_personal)
             loss = criterion(
                 outputs,
                 labels,
             ).item()
-            per_sample_loss += loss
+            dl = 0.5 * (
+                torch.sum(
+                    outputs_personal_prob
+                    * torch.log(outputs_personal_prob / outputs_prob),
+                    dim=1,
+                )
+                + torch.sum(
+                    outputs_prob * torch.log(outputs_prob / outputs_personal_prob),
+                    dim=1,
+                )
+            )
+            per_sample_loss += loss + 0.001 * dl
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
 
-            per_sample_loss_personal += loss + torch.sum(outputs_personal * torch.log(outputs_personal * outputs)).item()
+            per_sample_loss_personal += loss + 0.001 * dl
+
             _, predicted_personal = torch.max(outputs_personal.data, 1)
             correct_personal += (predicted_personal == labels).sum().item()
 
     return (
         per_sample_loss / len(cast(Sized, testloader.dataset)),
-        per_sample_loss_personal / len(cast(Sized, testloader.dataset)),
+        # per_sample_loss_personal / len(cast(Sized, testloader.dataset)),
         len(cast(Sized, testloader.dataset)),
         {
             "test_accuracy": float(correct) / len(cast(Sized, testloader.dataset)),
-            "test_accuracy_personal": float(correct_personal) / len(cast(Sized, testloader.dataset))
+            "test_accuracy_personal": float(correct_personal)
+            / len(cast(Sized, testloader.dataset)),
         },
     )
 

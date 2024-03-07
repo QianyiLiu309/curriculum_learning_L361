@@ -42,7 +42,6 @@ class TrainConfig(BaseModel):
 
 def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
-    personal_net: nn.Module,
     trainloader: DataLoader,
     _config: dict,
     _working_dir: Path,
@@ -81,6 +80,7 @@ def train(  # pylint: disable=too-many-arguments
     del _config
 
     net.to(config.device)
+    personal_net = copy.deepcopy(net)
     personal_net.to(config.device)
 
     frozen_teacher_net = copy.deepcopy(net)
@@ -121,12 +121,14 @@ def train(  # pylint: disable=too-many-arguments
             optimizer.zero_grad()
             output = net(data)
             output_personal = personal_net(data)
-            losses = criterion(output, target)
+            DL = 0.5 * (torch.sum(output_personal * torch.log(output_personal / output), dim=1) + 
+                        torch.sum(output * torch.log(output / output_personal), dim=1))
+            losses = criterion(output, target) + 0.001 * DL
             # TODO: check 
             #           1. net_personal 
             #           2. set a trade-off param lambda
             #           3. dimension of KL
-            losses_personal = losses + 0.001 * torch.sum(output_personal * torch.log(output_personal / output), dim=1)
+            losses_personal = losses + 0.001 * DL
 
             with torch.no_grad():
                 teacher_output = frozen_teacher_net(data)
@@ -178,7 +180,6 @@ class TestConfig(BaseModel):
 
 def test(
     net: nn.Module,
-    personal_net: nn.Module,
     testloader: DataLoader,
     _config: dict,
     _working_dir: Path,

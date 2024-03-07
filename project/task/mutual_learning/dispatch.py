@@ -29,7 +29,7 @@ from project.task.default.dispatch import (
     init_working_dir as init_working_dir_default,
 )
 from project.task.cifar10_classification.dataset import get_dataloader_generators
-from project.task.transfer_teacher.train_test import get_fed_eval_fn, test, train
+from project.task.mutual_learning.train_test import get_fed_eval_fn, test, train
 from project.models.cnn_cifar10 import get_cnn
 from project.types.common import DataStructure, TrainStructure
 

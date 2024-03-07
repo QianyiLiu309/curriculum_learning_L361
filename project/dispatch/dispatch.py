@@ -67,6 +67,17 @@ from project.task.transfer_teacher.dispatch import (
     dispatch_train as dispatch_transfer_teacher_train,
 )
 
+# mutual_learning
+from project.task.mutual_learning.dispatch import (
+    dispatch_config as dispatch_mutual_learning_config,
+)
+from project.task.mutual_learning.dispatch import (
+    dispatch_data as dispatch_mutual_learning_data,
+)
+from project.task.mutual_learning.dispatch import (
+    dispatch_train as dispatch_mutual_learning_train,
+)
+
 from project.types.common import ConfigStructure, DataStructure, TrainStructure
 
 
@@ -96,6 +107,7 @@ def dispatch_train(cfg: DictConfig) -> TrainStructure:
         dispatch_femnist_train,
         dispatch_self_paced_learning_train,
         dispatch_transfer_teacher_train,
+        dispatch_mutual_learning_train,
     ]
 
     # Match the first function which does not return None
@@ -131,6 +143,7 @@ def dispatch_data(cfg: DictConfig) -> DataStructure:
     task_data_dependent_functions: list[
         Callable[[DictConfig], DataStructure | None]
     ] = [
+        dispatch_mutual_learning_data,
         dispatch_transfer_teacher_data,
         dispatch_self_paced_learning_data,
         dispatch_femnist_data,
@@ -172,6 +185,7 @@ def dispatch_config(cfg: DictConfig) -> ConfigStructure:
     """
     # Create the list of task dispatches to try
     task_config_functions: list[Callable[[DictConfig], ConfigStructure | None]] = [
+        dispatch_mutual_learning_config,
         dispatch_transfer_teacher_config,
         dispatch_self_paced_learning_config,
         dispatch_femnist_config,

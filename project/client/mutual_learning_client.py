@@ -142,7 +142,7 @@ class MutualLearningClient(fl.client.NumPyClient):
 
         self.local_net = self.load_local_parameters(
             config.net_config,
-            local_checkpoint_path,
+            str(local_checkpoint_path),
         )
         print(f"local_net: {self.local_net}")
 
@@ -152,12 +152,12 @@ class MutualLearningClient(fl.client.NumPyClient):
             config.dataloader_config,
             self.rng_tuple,
         )
-        num_samples, metrics = self.train(
+        num_samples, metrics = self.train(  # type: ignore [call-arg]
             self.net,
             self.local_net,
             trainloader,
-            config.run_config,
-            self.working_dir,
+            config.run_config,  # type: ignore [arg-type]
+            self.working_dir,  # type: ignore [arg-type]
             self.rng_tuple,
         )
 

@@ -66,7 +66,7 @@ def dispatch_train(
 
     # Only consider not None and uppercase matches
     if train_structure is not None and train_structure.upper() == "ML":
-        return train, test, get_fed_eval_fn
+        return train, test, get_fed_eval_fn  # type: ignore [return-value]
 
     # Cannot match, send to next dispatch in chain
     return None

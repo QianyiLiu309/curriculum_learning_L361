@@ -18,7 +18,8 @@ fit_config:
     epochs: 3
     learning_rate: 0.01
   # No extra config
-  extra: {}
+  extra:
+    checkpoint_dir: outputs/tmp_local_models
 
 # Client eval config
 eval_config:

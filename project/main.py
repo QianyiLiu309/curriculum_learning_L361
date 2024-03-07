@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from typing import cast
 import uuid
+import shutil
 
 import flwr as fl
 import hydra
@@ -22,6 +23,9 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from project.client.client import get_client_generator
+from project.client.mutual_learning_client import (
+    get_client_generator as get_mutual_learning_client_generator,
+)
 from project.dispatch.dispatch import dispatch_config, dispatch_data, dispatch_train
 from project.fed.server.deterministic_client_manager import DeterministicClientManager
 from project.fed.server.wandb_server import WandbServer
@@ -291,14 +295,27 @@ def main(cfg: DictConfig) -> None:
 
             # Client generation function for Ray
             # Do not change
-            client_generator: ClientGen = get_client_generator(
-                working_dir=working_dir,
-                net_generator=net_generator,
-                dataloader_gen=client_dataloader_gen,
-                train=train_func,
-                test=test_func,
-                client_seed_generator=client_seed_rng,
-            )
+            if cfg.task.train_structure == "ML":
+                client_generator: ClientGen = get_mutual_learning_client_generator(
+                    working_dir=working_dir,
+                    net_generator=net_generator,
+                    dataloader_gen=client_dataloader_gen,
+                    train=train_func,
+                    test=test_func,
+                    client_seed_generator=client_seed_rng,
+                )
+                checkpoint_dir = cfg.task.fit_config.extra.checkpoint_dir
+                shutil.rmtree(checkpoint_dir, ignore_errors=True)
+                Path(checkpoint_dir).mkdir(parents=True, exist_ok=False)
+            else:
+                client_generator: ClientGen = get_client_generator(  # type: ignore  [no-redef]
+                    working_dir=working_dir,
+                    net_generator=net_generator,
+                    dataloader_gen=client_dataloader_gen,
+                    train=train_func,
+                    test=test_func,
+                    client_seed_generator=client_seed_rng,
+                )
 
             # Runs fit and eval on either one client or all of them
             # Avoids launching ray for debugging purposes

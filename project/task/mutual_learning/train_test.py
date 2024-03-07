@@ -8,6 +8,7 @@ import torch
 import copy
 from pydantic import BaseModel
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from project.task.self_paced_learning.pacing_utils import get_loss_threshold
@@ -42,6 +43,7 @@ class TrainConfig(BaseModel):
 
 def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
+    local_net: nn.Module,
     trainloader: DataLoader,
     _config: dict,
     _working_dir: Path,
@@ -80,8 +82,7 @@ def train(  # pylint: disable=too-many-arguments
     del _config
 
     net.to(config.device)
-    personal_net = copy.deepcopy(net)
-    personal_net.to(config.device)
+    local_net.to(config.device)
 
     frozen_teacher_net = copy.deepcopy(net)
     frozen_teacher_net.to(config.device)
@@ -97,20 +98,23 @@ def train(  # pylint: disable=too-many-arguments
     print(f"loss_threshold based on frozen teacher: {loss_threshold}")
 
     criterion = nn.CrossEntropyLoss(reduction="none")
+    kl_div_loss = nn.KLDivLoss(reduction="none")
     optimizer = torch.optim.SGD(
         net.parameters(),
         lr=config.learning_rate,
     )
-    optimizer_personal = torch.optim.SGD(
-        personal_net.parameters(), lr=config.learning_rate
-    )
+    optimiser_local = torch.optim.SGD(local_net.parameters(), lr=config.learning_rate)
+
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
-    softmax = nn.Softmax()
+    final_epoch_per_sample_loss_local = 0.0
+    num_correct_local = 0
     for i in range(config.epochs):
         net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
+        final_epoch_per_sample_loss_local = 0.0
+        num_correct_local = 0
         for data, target in trainloader:
             data, target = (
                 data.to(
@@ -118,27 +122,6 @@ def train(  # pylint: disable=too-many-arguments
                 ),
                 target.to(config.device),
             )
-            optimizer.zero_grad()
-            output = net(data)
-            output_personal = personal_net(data)
-            output_prob = softmax(output)
-            output_personal_prob = softmax(output_personal)
-            dl = 0.5 * (
-                torch.sum(
-                    output_personal_prob
-                    * torch.log(output_personal_prob / output_prob),
-                    dim=1,
-                )
-                + torch.sum(
-                    output_prob * torch.log(output_prob / output_personal_prob), dim=1
-                )
-            )
-            losses = criterion(output, target) + 0.001 * dl
-            # TODO: check
-            #           1. net_personal
-            #           2. set a trade-off param lambda
-            #           3. dimension of KL
-            losses_personal = criterion(output_personal, target) + 0.001 * dl
 
             with torch.no_grad():
                 teacher_output = frozen_teacher_net(data)
@@ -146,28 +129,55 @@ def train(  # pylint: disable=too-many-arguments
 
             # only learn on samples with loss < loss_threshold
             mask = teacher_losses <= loss_threshold
-            loss = (losses * mask).sum() / (
-                mask.sum() + 1e-10
-            )  # shouldn't directly use mean() here
-            loss_personal = (losses_personal * mask).sum() / (mask.sum() + 1e-10)
+            output = net(data)
+            output_local = local_net(data)
 
-            final_epoch_per_sample_loss += loss.item()
-            num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
+            kl_div_to_net = kl_div_loss(
+                F.log_softmax(output, dim=1),
+                F.softmax(output_local.detach(), dim=1),
+            ).sum(dim=1)
+            kl_div_to_local_net = kl_div_loss(
+                F.log_softmax(output_local, dim=1),
+                F.softmax(output.detach(), dim=1),
+            ).sum(dim=1)
+
+            losses = criterion(output, target) + kl_div_to_net
+            losses_local = criterion(output_local, target) + kl_div_to_local_net
+
+            loss = (losses * mask).sum() / (mask.sum() + 1e-10)
+            loss_local = (losses_local * mask).sum() / (mask.sum() + 1e-10)
+
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            loss_personal.backward()
-            optimizer_personal.step()
+            optimiser_local.zero_grad()
+            loss_local.backward()
+            optimiser_local.step()
+
+            final_epoch_per_sample_loss += loss.item()
+            num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
+
+            final_epoch_per_sample_loss_local += loss.item()
+            num_correct_local += (
+                (output_local.max(1)[1] == target).clone().detach().sum().item()
+            )
         print(
             f"Epoch {i + 1}, loss:"
-            f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
-            f" accuracy: {num_correct / len(trainloader.dataset)}"
+            f" {final_epoch_per_sample_loss / len(trainloader.dataset)}, accuracy:"
+            f" {num_correct / len(trainloader.dataset)}, local loss"
+            f" {final_epoch_per_sample_loss_local / len(trainloader.dataset)},"
+            f" local accuracy: {num_correct_local / len(trainloader.dataset)}"
         )
 
     return len(cast(Sized, trainloader.dataset)), {
         "train_loss": final_epoch_per_sample_loss
         / len(cast(Sized, trainloader.dataset)),
         "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
+        "local_train_loss": final_epoch_per_sample_loss_local
+        / len(cast(Sized, trainloader.dataset)),
+        "local_train_accuracy": float(num_correct_local)
+        / len(cast(Sized, trainloader.dataset)),
     }
 
 
@@ -229,14 +239,10 @@ def test(
 
     net.to(config.device)
     net.eval()
-    personal_net = copy.deepcopy(net)
-    personal_net.to(config.device)
-    personal_net.eval()
 
     criterion = nn.CrossEntropyLoss()
     correct, per_sample_loss = 0, 0.0
-    correct_personal, per_sample_loss_personal = 0, 0.0
-    softmax = nn.Softmax()
+
     with torch.no_grad():
         for images, labels in testloader:
             images, labels = (
@@ -246,41 +252,18 @@ def test(
                 labels.to(config.device),
             )
             outputs = net(images)
-            outputs_personal = personal_net(images)
-            outputs_prob = softmax(outputs)
-            outputs_personal_prob = softmax(outputs_personal)
-            loss = criterion(
+            per_sample_loss += criterion(
                 outputs,
                 labels,
             ).item()
-            dl = 0.5 * (
-                torch.sum(
-                    outputs_personal_prob
-                    * torch.log(outputs_personal_prob / outputs_prob),
-                    dim=1,
-                )
-                + torch.sum(
-                    outputs_prob * torch.log(outputs_prob / outputs_personal_prob),
-                    dim=1,
-                )
-            )
-            per_sample_loss += loss + 0.001 * dl
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
 
-            per_sample_loss_personal += loss + 0.001 * dl
-
-            _, predicted_personal = torch.max(outputs_personal.data, 1)
-            correct_personal += (predicted_personal == labels).sum().item()
-
     return (
         per_sample_loss / len(cast(Sized, testloader.dataset)),
-        # per_sample_loss_personal / len(cast(Sized, testloader.dataset)),
         len(cast(Sized, testloader.dataset)),
         {
             "test_accuracy": float(correct) / len(cast(Sized, testloader.dataset)),
-            "test_accuracy_personal": float(correct_personal)
-            / len(cast(Sized, testloader.dataset)),
         },
     )
 

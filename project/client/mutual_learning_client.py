@@ -140,11 +140,11 @@ class MutualLearningClient(fl.client.NumPyClient):
         print(f"checkpoint_dir: {checkpoint_dir}")
         local_checkpoint_path = checkpoint_dir / f"local_{self.cid}.pt"
 
-        self.local_net = self.load_local_parameters(
+        self.net_local = self.load_local_parameters(
             config.net_config,
             str(local_checkpoint_path),
         )
-        print(f"local_net: {self.local_net}")
+        print(f"local_net: {self.net_local}")
 
         trainloader = self.dataloader_gen(
             self.cid,
@@ -154,7 +154,7 @@ class MutualLearningClient(fl.client.NumPyClient):
         )
         num_samples, metrics = self.train(  # type: ignore [call-arg]
             self.net,
-            self.local_net,
+            self.net_local,
             trainloader,
             config.run_config,  # type: ignore [arg-type]
             self.working_dir,  # type: ignore [arg-type]
@@ -162,7 +162,7 @@ class MutualLearningClient(fl.client.NumPyClient):
         )
 
         # save parameters for local model
-        torch.save(self.local_net.state_dict(), local_checkpoint_path)
+        torch.save(self.net_local.state_dict(), local_checkpoint_path)
 
         return (
             self.get_parameters({}),
@@ -208,13 +208,26 @@ class MutualLearningClient(fl.client.NumPyClient):
             config.dataloader_config,
             self.rng_tuple,
         )
-        loss, num_samples, metrics = self.test(  # type: ignore [call-arg]
+
+        # evaluate federated model
+        loss, num_samples, metrics = self.test(
             self.net,
             testloader,
-            config.run_config,  # type: ignore [arg-type]
-            self.working_dir,  # type: ignore [arg-type]
+            config.run_config,
+            self.working_dir,
             self.rng_tuple,
         )
+
+        # evaluate local model
+        _, _, metrics_local = self.test(
+            self.net_local,
+            testloader,
+            config.run_config,
+            self.working_dir,
+            self.rng_tuple,
+        )
+        for key, value in metrics_local.items():
+            metrics[f"local_{key}"] = value
         return loss, num_samples, metrics
 
     def get_parameters(self, config: dict) -> NDArrays:

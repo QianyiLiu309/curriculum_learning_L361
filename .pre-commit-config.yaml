@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: ruff
         types_or: [python, pyi, jupyter]
-        args: [--fix, --preview, --extend-ignore=PLR0917,--extend-ignore=PLR0914,--extend-ignore=D102,--extend-ignore=T201,--extend-ignore=PLR2004,--extend-ignore=E501]
+        args: [--fix, --preview, --extend-ignore=PLR0917,--extend-ignore=PLR0914,--extend-ignore=D102,--extend-ignore=T201,--extend-ignore=PLR2004,--extend-ignore=E501,--extend-ignore=EXE002]
   - repo: https://github.com/lyz-code/yamlfix/
     rev: 1.16.0
     hooks:

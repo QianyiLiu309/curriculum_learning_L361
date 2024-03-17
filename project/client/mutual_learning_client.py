@@ -208,11 +208,11 @@ class MutualLearningClient(fl.client.NumPyClient):
             config.dataloader_config,
             self.rng_tuple,
         )
-        loss, num_samples, metrics = self.test(
+        loss, num_samples, metrics = self.test(  # type: ignore [call-arg]
             self.net,
             testloader,
-            config.run_config,
-            self.working_dir,
+            config.run_config,  # type: ignore [arg-type]
+            self.working_dir,  # type: ignore [arg-type]
             self.rng_tuple,
         )
         return loss, num_samples, metrics

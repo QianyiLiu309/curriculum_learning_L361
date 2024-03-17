@@ -60,6 +60,7 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         min_fit_clients: int = 2,
         min_evaluate_clients: int = 2,
         min_available_clients: int = 2,
+        curriculum_strategy: str = "linear",
         round_between_increase: int = 5,
         increase_amount: float = 0.1,
         starting_percentage: float = 0.1,
@@ -92,6 +93,7 @@ class FedAvgCL(fl.server.strategy.FedAvg):
             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn,
         )
 
+        self.curriculum_strategy = curriculum_strategy
         self.epoch_increase = round_between_increase
         self.increase_amount = increase_amount
         self.starting_percentage = starting_percentage
@@ -100,9 +102,10 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
         """Configure the next round of training."""
-        percentage = self.starting_percentage + self.increase_amount * (
-            server_round // self.epoch_increase
-        )
+        if self.curriculum_strategy == "linear":
+            percentage = self.starting_percentage + self.increase_amount * (
+                server_round // self.epoch_increase
+            )
         percentage = min(percentage, 1.0)
         config = {}
         if self.on_fit_config_fn is not None:

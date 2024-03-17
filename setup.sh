@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VPOETRY_HOME=""
-VPYENV_ROOT=""
+VPOETRY_HOME="/home/ro352/.poetry"
+VPYENV_ROOT="/home/ro352/.pyenv"
 VPYTHON_VERSION="3.11.6"
 
 

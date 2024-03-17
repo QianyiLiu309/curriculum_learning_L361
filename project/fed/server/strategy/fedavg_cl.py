@@ -1,6 +1,7 @@
 """Federated Averaging strategy with continual learning."""
 
 from collections.abc import Callable
+import math
 
 import flwr as fl
 from flwr.common import (
@@ -105,6 +106,10 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         if self.curriculum_strategy == "linear":
             percentage = self.starting_percentage + self.increase_amount * (
                 server_round // self.epoch_increase
+            )
+        elif self.curriculum_strategy == "exponential":
+            percentage = self.starting_percentage * math.exp(
+                self.increase_amount * server_round // self.epoch_increase
             )
         percentage = min(percentage, 1.0)
         config = {}

@@ -111,6 +111,7 @@ def train(  # pylint: disable=too-many-arguments
     num_correct_local = 0
     for i in range(config.epochs):
         net.train()
+        local_net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
         final_epoch_per_sample_loss_local = 0.0
@@ -198,6 +199,7 @@ class TestConfig(BaseModel):
 
 def test(
     net: nn.Module,
+    local_net: nn.Module,
     testloader: DataLoader,
     _config: dict,
     _working_dir: Path,
@@ -240,8 +242,12 @@ def test(
     net.to(config.device)
     net.eval()
 
+    local_net.to(config.device)
+    local_net.eval()
+
     criterion = nn.CrossEntropyLoss()
     correct, per_sample_loss = 0, 0.0
+    correct_local, per_sample_loss_local = 0, 0.0
 
     with torch.no_grad():
         for images, labels in testloader:
@@ -251,6 +257,8 @@ def test(
                 ),
                 labels.to(config.device),
             )
+
+            # evaluate federated model
             outputs = net(images)
             per_sample_loss += criterion(
                 outputs,
@@ -259,11 +267,22 @@ def test(
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
 
+            # evaluate local model
+            outputs_local = local_net(images)
+            per_sample_loss_local += criterion(
+                outputs_local,
+                labels,
+            ).item()
+            _, predicted_local = torch.max(outputs_local.data, 1)
+            correct_local += (predicted_local == labels).sum().item()
+
     return (
         per_sample_loss / len(cast(Sized, testloader.dataset)),
         len(cast(Sized, testloader.dataset)),
         {
             "test_accuracy": float(correct) / len(cast(Sized, testloader.dataset)),
+            "local_test_accuracy": float(correct_local)
+            / len(cast(Sized, testloader.dataset)),
         },
     )
 

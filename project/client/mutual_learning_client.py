@@ -92,6 +92,7 @@ class MutualLearningClient(fl.client.NumPyClient):
         self.net_generator = net_generator
         self.working_dir = working_dir
         self.net: nn.Module | None = None
+        self.net_local: nn.Module | None = None
         self.dataloader_gen = dataloader_gen
         self.train = train
         self.test = test
@@ -218,16 +219,30 @@ class MutualLearningClient(fl.client.NumPyClient):
             self.rng_tuple,
         )
 
-        # evaluate local model
-        _, _, metrics_local = self.test(
-            self.net_local,
-            testloader,
-            config.run_config,
-            self.working_dir,
-            self.rng_tuple,
-        )
-        for key, value in metrics_local.items():
-            metrics[f"local_{key}"] = value
+        # load parameters for local model
+        checkpoint_dir = Path(config.extra.get("checkpoint_dir", self.working_dir))
+        local_checkpoint_path = checkpoint_dir / f"local_{self.cid}.pt"
+        if not local_checkpoint_path.exists():
+            print(
+                f"{local_checkpoint_path} does not exist, skip evaluation of local"
+                " model."
+            )
+            self.net_local = self.load_local_parameters(
+                config.net_config,
+                str(local_checkpoint_path),
+            )
+            print(f"local_net: {self.net_local}")
+
+            # evaluate local model
+            _, _, metrics_local = self.test(
+                self.net_local,
+                testloader,
+                config.run_config,
+                self.working_dir,
+                self.rng_tuple,
+            )
+            for key, value in metrics_local.items():
+                metrics[f"local_{key}"] = value
         return loss, num_samples, metrics
 
     def get_parameters(self, config: dict) -> NDArrays:

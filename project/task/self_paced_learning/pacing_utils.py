@@ -123,7 +123,14 @@ def get_filtered_trainloader(
     loss_threshold = sorted_loss_ls[index]
     print(f"loss_threshold: {loss_threshold}")
 
-    filtered_indices = [i for i, loss in enumerate(loss_ls) if loss <= loss_threshold]
+    if ascending_order:
+        filtered_indices = [
+            i for i, loss in enumerate(loss_ls) if loss <= loss_threshold
+        ]
+    else:
+        filtered_indices = [
+            i for i, loss in enumerate(loss_ls) if loss >= loss_threshold
+        ]
     print(f"Number of samples before filtering: {len(trainloader.dataset)}")
     print(f"Number of indices after filtering: {len(filtered_indices)}")
     filtered_dataest = torch.utils.data.Subset(trainloader.dataset, filtered_indices)

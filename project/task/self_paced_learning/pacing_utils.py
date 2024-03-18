@@ -61,7 +61,7 @@ def get_loss_threshold(
     if percentage is None:
         return loss_ls[-1]
     else:
-        index = min(len(loss_ls), int(len(loss_ls) * percentage)) - 1
+        index = max(min(len(loss_ls), int(len(loss_ls) * percentage)) - 1, 0)
         loss_threshold = loss_ls[index]
         print(f"loss_threshold: {loss_threshold}")
         return loss_threshold

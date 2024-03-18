@@ -3,7 +3,7 @@ name: FedAvgCL
 
 init:
   _target_: project.fed.server.strategy.fedavg_cl.FedAvgCL
-  curriculum_strategy: linear  # or exponential
+  curriculum_strategy: anti_linear
   round_between_increase: 10
-  increase_amount: 0.2  # 0.2 for exponential schedule
+  increase_amount: 0.1
   starting_percentage: 0.2

@@ -103,7 +103,7 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
         """Configure the next round of training."""
-        if self.curriculum_strategy == "linear":
+        if "linear" in self.curriculum_strategy:
             percentage = self.starting_percentage + self.increase_amount * (
                 server_round // self.epoch_increase
             )
@@ -112,11 +112,18 @@ class FedAvgCL(fl.server.strategy.FedAvg):
                 self.increase_amount * server_round // self.epoch_increase
             )
         percentage = min(percentage, 1.0)
+        print("================================================")
+        print("Precentage: ", percentage)
+        print("======================end=======================")
         config = {}
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
             config["run_config"]["percentage"] = percentage  # type: ignore [index]
+            if "anti" in self.curriculum_strategy:  # anti strategies
+                config["run_config"]["is_anti"] = True
+            else:  # non-anti strategies
+                config["run_config"]["is_anti"] = False
             print(f"Configuring fit with {config}")
         fit_ins = FitIns(parameters, config)
 

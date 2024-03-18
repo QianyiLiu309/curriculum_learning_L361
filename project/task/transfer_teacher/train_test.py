@@ -33,6 +33,7 @@ class TrainConfig(BaseModel):
     epochs: int
     learning_rate: float
     percentage: float | None
+    is_anti: bool | None
 
     class Config:
         """Setting to allow any types, including library ones like torch.device."""
@@ -86,12 +87,21 @@ def train(  # pylint: disable=too-many-arguments
     for param in frozen_teacher_net.parameters():
         param.requires_grad = False
 
-    loss_threshold = get_loss_threshold(
-        frozen_teacher_net,
-        trainloader,
-        config.percentage,
-        config.device,
-    )
+    if not config.is_anti:
+        loss_threshold = get_loss_threshold(
+            frozen_teacher_net,
+            trainloader,
+            config.percentage,
+            config.device,
+        )
+    else:
+        loss_threshold = get_loss_threshold(
+            frozen_teacher_net,
+            trainloader,
+            1 - config.percentage,
+            config.device,
+        )
+
     print(f"loss_threshold based on frozen teacher: {loss_threshold}")
 
     criterion = nn.CrossEntropyLoss(reduction="none")
@@ -105,6 +115,9 @@ def train(  # pylint: disable=too-many-arguments
         net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
+
+        # Debug
+        num_data_sample = 0
         for data, target in trainloader:
             data, target = (
                 data.to(
@@ -121,11 +134,16 @@ def train(  # pylint: disable=too-many-arguments
                 teacher_losses = criterion(teacher_output, target)
 
             # only learn on samples with loss < loss_threshold
-            mask = teacher_losses <= loss_threshold
+            # if config.
+            if not config.is_anti:
+                mask = teacher_losses <= loss_threshold
+            else:
+                mask = teacher_losses >= loss_threshold
             loss = (losses * mask).sum() / (
                 mask.sum() + 1e-10
             )  # shouldn't directly use mean() here
 
+            num_data_sample += mask.sum()
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
             loss.backward()
@@ -135,6 +153,10 @@ def train(  # pylint: disable=too-many-arguments
             f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
             f" accuracy: {num_correct / len(trainloader.dataset)}"
         )
+
+        print("================ num_data_sample ==================")
+        print(f"The number of samples used in the training: {num_data_sample}.")
+        print("================ end of num_data_sample ==================")
 
     return len(cast(Sized, trainloader.dataset)), {
         "train_loss": final_epoch_per_sample_loss

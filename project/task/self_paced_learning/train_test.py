@@ -32,6 +32,7 @@ class TrainConfig(BaseModel):
     epochs: int
     learning_rate: float
     percentage: float | None
+    is_anti: bool | None
 
     class Config:
         """Setting to allow any types, including library ones like torch.device."""
@@ -88,12 +89,20 @@ def train(  # pylint: disable=too-many-arguments
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
     for i in range(config.epochs):
-        loss_threshold = get_loss_threshold(
-            net,
-            trainloader,
-            config.percentage,
-            config.device,
-        )
+        if not config.is_anti:
+            loss_threshold = get_loss_threshold(
+                net,
+                trainloader,
+                config.percentage,
+                config.device,
+            )
+        else:
+            loss_threshold = get_loss_threshold(
+                net,
+                trainloader,
+                1 - config.percentage,
+                config.device,
+            )
         print(f"loss_threshold for epoch {i}: {loss_threshold}")
 
         net.train()
@@ -111,7 +120,10 @@ def train(  # pylint: disable=too-many-arguments
             losses = criterion(output, target)
 
             # only learn on samples with loss < loss_threshold
-            mask = losses <= loss_threshold
+            if not config.is_anti:
+                mask = losses <= loss_threshold
+            else:
+                mask = losses >= loss_threshold
             loss = (losses * mask).sum() / (
                 mask.sum() + 1e-10
             )  # shouldn't directly use mean() here

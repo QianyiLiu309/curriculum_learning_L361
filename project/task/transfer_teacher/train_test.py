@@ -10,7 +10,9 @@ from pydantic import BaseModel
 from torch import nn
 from torch.utils.data import DataLoader
 
-from project.task.self_paced_learning.pacing_utils import get_loss_threshold
+from project.task.self_paced_learning.pacing_utils import (
+    get_filtered_trainloader,
+)
 
 from project.task.default.train_test import get_fed_eval_fn as get_default_fed_eval_fn
 from project.task.default.train_test import (
@@ -41,6 +43,125 @@ class TrainConfig(BaseModel):
         arbitrary_types_allowed = True
 
 
+# def train(  # pylint: disable=too-many-arguments
+#     net: nn.Module,
+#     trainloader: DataLoader,
+#     _config: dict,
+#     _working_dir: Path,
+#     _rng_tuple: IsolatedRNG,
+# ) -> tuple[int, dict]:
+#     """Train the network on the training set.
+
+#     Parameters
+#     ----------
+#     net : nn.Module
+#         The neural network to train.
+#     trainloader : DataLoader
+#         The DataLoader containing the data to train the network on.
+#     _config : Dict
+#         The configuration for the training.
+#         Contains the device, number of epochs and learning rate.
+#         Static type checking is done by the TrainConfig class.
+#     _working_dir : Path
+#         The working directory for the training.
+#         Unused.
+#     _rng_tuple : IsolatedRNGTuple
+#         The random number generator state for the training.
+#         Use if you need seeded random behavior
+
+#     Returns
+#     -------
+#     Tuple[int, Dict]
+#         The number of samples used for training,
+#         the loss, and the accuracy of the input model on the given data.
+#     """
+#     if len(cast(Sized, trainloader.dataset)) == 0:
+#         raise ValueError(
+#             "Trainloader can't be 0, exiting...",
+#         )
+#     config: TrainConfig = TrainConfig(**_config)
+#     del _config
+
+#     net.to(config.device)
+
+#     frozen_teacher_net = copy.deepcopy(net)
+#     frozen_teacher_net.to(config.device)
+#     for param in frozen_teacher_net.parameters():
+#         param.requires_grad = False
+
+#     percentage = None if config.percentage is None else config.percentage
+#     if config.is_anti:
+#         percentage = None if percentage is None else 1 - percentage
+
+#     loss_threshold = get_loss_threshold(
+#         frozen_teacher_net,
+#         trainloader,
+#         percentage,
+#         config.device,
+#     )
+
+#     print(f"loss_threshold based on frozen teacher: {loss_threshold}")
+
+#     criterion = nn.CrossEntropyLoss(reduction="none")
+#     optimizer = torch.optim.SGD(
+#         net.parameters(),
+#         lr=config.learning_rate,
+#     )
+#     final_epoch_per_sample_loss = 0.0
+#     num_correct = 0
+#     for i in range(config.epochs):
+#         net.train()
+#         final_epoch_per_sample_loss = 0.0
+#         num_correct = 0
+
+#         # Debug
+#         num_data_sample = 0
+#         for data, target in trainloader:
+#             data, target = (
+#                 data.to(
+#                     config.device,
+#                 ),
+#                 target.to(config.device),
+#             )
+#             optimizer.zero_grad()
+#             output = net(data)
+#             losses = criterion(output, target)
+
+#             with torch.no_grad():
+#                 teacher_output = frozen_teacher_net(data)
+#                 teacher_losses = criterion(teacher_output, target)
+
+#             # only learn on samples with loss < loss_threshold
+#             # if config.
+#             if not config.is_anti:
+#                 mask = teacher_losses <= loss_threshold
+#             else:
+#                 mask = teacher_losses >= loss_threshold
+#             loss = (losses * mask).sum() / (
+#                 mask.sum() + 1e-10
+#             )  # shouldn't directly use mean() here
+
+#             num_data_sample += mask.sum()
+#             final_epoch_per_sample_loss += loss.item()
+#             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
+#             loss.backward()
+#             optimizer.step()
+#         print(
+#             f"Epoch {i + 1}, loss:"
+#             f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
+#             f" accuracy: {num_correct / len(trainloader.dataset)}"
+#         )
+
+#         print("================ num_data_sample ==================")
+#         print(f"The number of samples used in the training: {num_data_sample}.")
+#         print("================ end of num_data_sample ==================")
+
+
+#     return len(cast(Sized, trainloader.dataset)), {
+#         "train_loss": final_epoch_per_sample_loss
+#         / len(cast(Sized, trainloader.dataset)),
+#         "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
+#     }
 def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
     trainloader: DataLoader,
@@ -87,20 +208,23 @@ def train(  # pylint: disable=too-many-arguments
     for param in frozen_teacher_net.parameters():
         param.requires_grad = False
 
-    percentage = None if config.percentage is None else config.percentage
-    if config.is_anti:
-        percentage = None if percentage is None else 1 - percentage
-
-    loss_threshold = get_loss_threshold(
+    print(
+        "Length of trainloader before filtering:"
+        f" {len(cast(Sized, trainloader.dataset))}"
+    )
+    trainloader_filtered = get_filtered_trainloader(
         frozen_teacher_net,
         trainloader,
-        percentage,
+        config.percentage,
         config.device,
+        ascending_order=not config.is_anti,
+    )
+    print(
+        "Length of trainloader after filtering:"
+        f" {len(cast(Sized, trainloader_filtered.dataset))}"
     )
 
-    print(f"loss_threshold based on frozen teacher: {loss_threshold}")
-
-    criterion = nn.CrossEntropyLoss(reduction="none")
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(
         net.parameters(),
         lr=config.learning_rate,
@@ -108,13 +232,9 @@ def train(  # pylint: disable=too-many-arguments
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
     for i in range(config.epochs):
-        net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
-
-        # Debug
-        num_data_sample = 0
-        for data, target in trainloader:
+        for data, target in trainloader_filtered:
             data, target = (
                 data.to(
                     config.device,
@@ -123,41 +243,22 @@ def train(  # pylint: disable=too-many-arguments
             )
             optimizer.zero_grad()
             output = net(data)
-            losses = criterion(output, target)
-
-            with torch.no_grad():
-                teacher_output = frozen_teacher_net(data)
-                teacher_losses = criterion(teacher_output, target)
-
-            # only learn on samples with loss < loss_threshold
-            # if config.
-            if not config.is_anti:
-                mask = teacher_losses <= loss_threshold
-            else:
-                mask = teacher_losses >= loss_threshold
-            loss = (losses * mask).sum() / (
-                mask.sum() + 1e-10
-            )  # shouldn't directly use mean() here
-
-            num_data_sample += mask.sum()
+            loss = criterion(output, target)
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
             loss.backward()
             optimizer.step()
         print(
             f"Epoch {i + 1}, loss:"
-            f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
-            f" accuracy: {num_correct / len(trainloader.dataset)}"
+            f" {final_epoch_per_sample_loss / len(trainloader_filtered.dataset)},"
+            f" accuracy: {num_correct / len(trainloader_filtered.dataset)}"
         )
 
-        print("================ num_data_sample ==================")
-        print(f"The number of samples used in the training: {num_data_sample}.")
-        print("================ end of num_data_sample ==================")
-
-    return len(cast(Sized, trainloader.dataset)), {
+    return len(cast(Sized, trainloader_filtered.dataset)), {
         "train_loss": final_epoch_per_sample_loss
-        / len(cast(Sized, trainloader.dataset)),
-        "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
+        / len(cast(Sized, trainloader_filtered.dataset)),
+        "train_accuracy": float(num_correct)
+        / len(cast(Sized, trainloader_filtered.dataset)),
     }
 
 

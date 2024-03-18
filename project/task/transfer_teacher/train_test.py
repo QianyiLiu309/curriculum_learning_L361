@@ -162,6 +162,8 @@ class TrainConfig(BaseModel):
 #         / len(cast(Sized, trainloader.dataset)),
 #         "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
 #     }
+
+
 def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
     trainloader: DataLoader,

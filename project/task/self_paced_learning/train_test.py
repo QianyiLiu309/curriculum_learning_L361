@@ -89,20 +89,16 @@ def train(  # pylint: disable=too-many-arguments
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
     for i in range(config.epochs):
-        if not config.is_anti:
-            loss_threshold = get_loss_threshold(
-                net,
-                trainloader,
-                config.percentage,
-                config.device,
-            )
-        else:
-            loss_threshold = get_loss_threshold(
-                net,
-                trainloader,
-                1 - config.percentage,
-                config.device,
-            )
+        loss_threshold = None if config.percentage is None else config.percentage
+        if config.is_anti:
+            loss_threshold = None if loss_threshold is None else 1 - loss_threshold
+
+        loss_threshold = get_loss_threshold(
+            net,
+            trainloader,
+            config.percentage,
+            config.device,
+        )
         print(f"loss_threshold for epoch {i}: {loss_threshold}")
 
         net.train()

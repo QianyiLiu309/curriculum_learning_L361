@@ -4,6 +4,6 @@ name: FedAvgCLExp
 init:
   _target_: project.fed.server.strategy.fedavg_cl.FedAvgCL
   curriculum_strategy: exponential  # or exponential
-  round_between_increase: 20
+  round_between_increase: 10
   increase_amount: 0.2  # 0.2 for exponential schedule
   starting_percentage: 0.2

@@ -109,12 +109,11 @@ class FedAvgCL(fl.server.strategy.FedAvg):
             )
         elif self.curriculum_strategy == "exponential":
             percentage = self.starting_percentage * math.exp(
-                self.increase_amount * server_round // self.epoch_increase
+                self.increase_amount * (server_round // self.epoch_increase)
             )
         percentage = min(percentage, 1.0)
-        print("================================================")
-        print("Precentage: ", percentage)
-        print("======================end=======================")
+        print(f"-------------Strategy: {self.curriculum_strategy}---------------------")
+        print(f"------------Percentage: {percentage}----------------------------------")
         config = {}
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided

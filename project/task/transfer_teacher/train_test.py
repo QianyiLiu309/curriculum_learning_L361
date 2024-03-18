@@ -87,14 +87,14 @@ def train(  # pylint: disable=too-many-arguments
     for param in frozen_teacher_net.parameters():
         param.requires_grad = False
 
-    loss_threshold = None if config.percentage is None else config.percentage
+    percentage = None if config.percentage is None else config.percentage
     if config.is_anti:
-        loss_threshold = None if loss_threshold is None else 1 - loss_threshold
+        percentage = None if percentage is None else 1 - percentage
 
     loss_threshold = get_loss_threshold(
         frozen_teacher_net,
         trainloader,
-        config.percentage,
+        percentage,
         config.device,
     )
 

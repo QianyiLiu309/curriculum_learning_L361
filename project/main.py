@@ -114,7 +114,7 @@ def main(cfg: DictConfig) -> None:
         "baseline",
     )
     print(f"Curriculum strategy: {curriculum_strategy}")
-    wandb_name = f"{cfg.task.model_and_data}_{curriculum_strategy}_{cfg.task.fit_config.run_config.epochs}_{cfg.dataset.name}_{cfg.dataset.alpha}_{cfg.fed.seed}"
+    wandb_name = f"{cfg.task.model_and_data}_{curriculum_strategy}_{cfg.task.fit_config.run_config.epochs}_{cfg.dataset.name}_{cfg.dataset.alpha}_{cfg.fed.seed}_{cfg.fed.num_total_clients}"
     with wandb_init(
         cfg.use_wandb,
         **cfg.wandb.setup,

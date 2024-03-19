@@ -1,0 +1,9 @@
+---
+name: FedAvgCL
+
+init:
+  _target_: project.fed.server.strategy.fedavg_cl.FedAvgCL
+  curriculum_strategy: anti-linear
+  round_between_increase: 10
+  increase_amount: 0.1
+  starting_percentage: 0.2

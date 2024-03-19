@@ -4,6 +4,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, default_collate
 
+import random
+
 
 # this can be implemented in a more efficient way to avoid every instances from being parsed twice
 def get_loss_threshold(
@@ -73,6 +75,7 @@ def get_filtered_trainloader(
     percentage: float | None,
     device: torch.device,
     ascending_order: bool = True,
+    is_random: bool = False,
 ) -> DataLoader:
     """Get the filtered trainloader corresponding to the specific percentage for curriculum learning.
 
@@ -123,7 +126,11 @@ def get_filtered_trainloader(
     loss_threshold = sorted_loss_ls[index]
     print(f"loss_threshold: {loss_threshold}")
 
-    if ascending_order:
+    if is_random:
+        print("Randomly sampling the data.")
+        full_indices = list(range(len(trainloader.dataset)))
+        filtered_indices = random.sample(full_indices, index + 1)
+    elif ascending_order:
         filtered_indices = [
             i for i, loss in enumerate(loss_ls) if loss <= loss_threshold
         ]

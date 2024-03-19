@@ -1,8 +1,0 @@
----
-name: FedAvgCL
-
-init:
-  _target_: project.fed.server.strategy.fedavg_cl.FedAvgCL
-  curriculum_strategy: anti-linear
-  a: 0.8
-  b: 0.2

@@ -123,10 +123,11 @@ class FedAvgCL(fl.server.strategy.FedAvg):
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
             config["run_config"]["percentage"] = percentage  # type: ignore [index]
-            if "anti" in self.curriculum_strategy:  # anti strategies
-                config["run_config"]["is_anti"] = True  # type: ignore [index]
-            else:  # non-anti strategies
-                config["run_config"]["is_anti"] = False  # type: ignore [index]
+
+            config["run_config"]["is_anti"] = "anti" in self.curriculum_strategy  # type: ignore [index]
+
+            config["run_config"]["is_random"] = "random" in self.curriculum_strategy  # type: ignore [index]
+
             print(f"Configuring fit with {config}")
         fit_ins = FitIns(parameters, config)
 

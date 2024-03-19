@@ -35,112 +35,12 @@ class TrainConfig(BaseModel):
     learning_rate: float
     percentage: float | None
     is_anti: bool | None
+    is_random: bool | None
 
     class Config:
         """Setting to allow any types, including library ones like torch.device."""
 
         arbitrary_types_allowed = True
-
-
-# def train(  # pylint: disable=too-many-arguments
-#     net: nn.Module,
-#     trainloader: DataLoader,
-#     _config: dict,
-#     _working_dir: Path,
-#     _rng_tuple: IsolatedRNG,
-# ) -> tuple[int, dict]:
-#     """Train the network on the training set.
-
-#     Parameters
-#     ----------
-#     net : nn.Module
-#         The neural network to train.
-#     trainloader : DataLoader
-#         The DataLoader containing the data to train the network on.
-#     _config : Dict
-#         The configuration for the training.
-#         Contains the device, number of epochs and learning rate.
-#         Static type checking is done by the TrainConfig class.
-#     _working_dir : Path
-#         The working directory for the training.
-#         Unused.
-#     _rng_tuple : IsolatedRNGTuple
-#         The random number generator state for the training.
-#         Use if you need seeded random behavior
-
-#     Returns
-#     -------
-#     Tuple[int, Dict]
-#         The number of samples used for training,
-#         the loss, and the accuracy of the input model on the given data.
-#     """
-#     if len(cast(Sized, trainloader.dataset)) == 0:
-#         raise ValueError(
-#             "Trainloader can't be 0, exiting...",
-#         )
-#     config: TrainConfig = TrainConfig(**_config)
-#     del _config
-
-#     net.to(config.device)
-
-#     criterion = nn.CrossEntropyLoss(reduction="none")
-#     optimizer = torch.optim.SGD(
-#         net.parameters(),
-#         lr=config.learning_rate,
-#     )
-#     final_epoch_per_sample_loss = 0.0
-#     num_correct = 0
-#     for i in range(config.epochs):
-#         percentage = None if config.percentage is None else config.percentage
-#         if config.is_anti:
-#             percentage = None if percentage is None else 1 - percentage
-#         loss_threshold = get_loss_threshold(
-#             net,
-#             trainloader,
-#             percentage,
-#             config.device,
-#         )
-
-#         print(f"loss_threshold for epoch {i}: {loss_threshold}")
-
-#         net.train()
-#         final_epoch_per_sample_loss = 0.0
-#         num_correct = 0
-#         for data, target in trainloader:
-#             data, target = (
-#                 data.to(
-#                     config.device,
-#                 ),
-#                 target.to(config.device),
-#             )
-#             optimizer.zero_grad()
-#             output = net(data)
-#             losses = criterion(output, target)
-
-#             # only learn on samples with loss < loss_threshold
-#             if not config.is_anti:
-#                 mask = losses <= loss_threshold
-#             else:
-#                 mask = losses >= loss_threshold
-#             loss = (losses * mask).sum() / (
-#                 mask.sum() + 1e-10
-#             )  # shouldn't directly use mean() here
-
-#             final_epoch_per_sample_loss += loss.item()
-#             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
-#             loss.backward()
-#             optimizer.step()
-#         print(
-#             f"Epoch {i + 1}, loss:"
-#             f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
-#             f" accuracy: {num_correct / len(trainloader.dataset)}"
-#         )
-
-#     return len(cast(Sized, trainloader.dataset)), {
-#         "train_loss": final_epoch_per_sample_loss
-#         / len(cast(Sized, trainloader.dataset)),
-#         "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
-#     }
 
 
 def train(  # pylint: disable=too-many-arguments
@@ -198,6 +98,7 @@ def train(  # pylint: disable=too-many-arguments
             config.percentage,
             config.device,
             ascending_order=not config.is_anti,
+            is_random=config.is_random if config.is_random is not None else False,
         )
         print(
             "Length of trainloader after filtering:"

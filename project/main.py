@@ -20,7 +20,7 @@ from wandb.sdk.wandb_run import Run
 from flwr.common.logger import log
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 
 from project.client.client import get_client_generator
 from project.client.mutual_learning_client import (
@@ -64,6 +64,11 @@ def main(cfg: DictConfig) -> None:
     cfg : DictConfig
         An omegaconf object that stores the hydra config.
     """
+    if "CL" in cfg.strategy.name:
+        with open_dict(cfg):
+            cfg.strategy.init.num_rounds = cfg.fed.num_rounds
+        print(f"Number of rounds: {cfg.strategy.init.num_rounds}")
+
     # Print parsed config
     log(logging.INFO, OmegaConf.to_yaml(cfg))
 

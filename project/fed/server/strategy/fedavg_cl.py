@@ -62,9 +62,9 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         min_evaluate_clients: int = 2,
         min_available_clients: int = 2,
         curriculum_strategy: str = "linear",
-        round_between_increase: int = 5,
-        increase_amount: float = 0.1,
-        starting_percentage: float = 0.1,
+        a: float = 0.8,
+        b: float = 0.2,
+        num_rounds: int = 100,
         evaluate_fn: (
             Callable[
                 [int, NDArrays, dict[str, Scalar]],
@@ -95,22 +95,26 @@ class FedAvgCL(fl.server.strategy.FedAvg):
         )
 
         self.curriculum_strategy = curriculum_strategy
-        self.epoch_increase = round_between_increase
-        self.increase_amount = increase_amount
-        self.starting_percentage = starting_percentage
+        self.a = a
+        self.b = b
+        self.num_rounds = num_rounds
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
         """Configure the next round of training."""
+        print(
+            f"server_round: {server_round}, num_rounds: {self.num_rounds}, a: {self.a},"
+            f" b: {self.b}"
+        )
         if "linear" in self.curriculum_strategy:
-            percentage = self.starting_percentage + self.increase_amount * (
-                server_round // self.epoch_increase
+            percentage = self.b + server_round * (1 - self.b) / (
+                self.a * self.num_rounds
             )
         elif self.curriculum_strategy == "exponential":
-            percentage = self.starting_percentage * math.exp(
-                self.increase_amount * (server_round // self.epoch_increase)
-            )
+            percentage = self.b + (1 - self.b) * (
+                math.exp(10 * server_round / self.a / self.num_rounds) - 1
+            ) / (math.exp(10) - 1)
         percentage = min(percentage, 1.0)
         print(f"-------------Strategy: {self.curriculum_strategy}---------------------")
         print(f"------------Percentage: {percentage}----------------------------------")

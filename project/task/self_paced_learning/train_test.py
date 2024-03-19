@@ -207,7 +207,7 @@ def train(  # pylint: disable=too-many-arguments
         net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
-        for data, target in trainloader:
+        for data, target in trainloader_filtered:
             data, target = (
                 data.to(
                     config.device,
@@ -223,14 +223,15 @@ def train(  # pylint: disable=too-many-arguments
             optimizer.step()
         print(
             f"Epoch {i + 1}, loss:"
-            f" {final_epoch_per_sample_loss / len(trainloader.dataset)},"
-            f" accuracy: {num_correct / len(trainloader.dataset)}"
+            f" {final_epoch_per_sample_loss / len(trainloader_filtered.dataset)},"
+            f" accuracy: {num_correct / len(trainloader_filtered.dataset)}"
         )
 
-    return len(cast(Sized, trainloader.dataset)), {
+    return len(cast(Sized, trainloader_filtered.dataset)), {
         "train_loss": final_epoch_per_sample_loss
-        / len(cast(Sized, trainloader.dataset)),
-        "train_accuracy": float(num_correct) / len(cast(Sized, trainloader.dataset)),
+        / len(cast(Sized, trainloader_filtered.dataset)),
+        "train_accuracy": float(num_correct)
+        / len(cast(Sized, trainloader_filtered.dataset)),
     }
 
 

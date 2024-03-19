@@ -3,7 +3,7 @@ defaults:
   - _self_
   - task: spl_cnn
   - fed: self_paced_learning
-  - strategy: fedavg_cl_exp
+  - strategy: fedavg_cl
   - dataset: cifar10
 
 # If checkpointing is enabled,

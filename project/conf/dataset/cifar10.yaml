@@ -11,7 +11,7 @@ dataset_dir: ./data/cifar10/data
 partition_dir: ./data/cifar10/partition
 
 # How many clients to create
-num_clients: 5
+num_clients: 10
 
 # How large should the test set of each client
 # be relative to the train set

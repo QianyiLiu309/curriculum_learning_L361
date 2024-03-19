@@ -109,6 +109,7 @@ def main(cfg: DictConfig) -> None:
     # Wandb context manager
     # controls if wandb is initialized or not
     # if not it returns a dummy run
+    wandb_name = f"{cfg.task.model_and_data}_{cfg.strategy.init.curriculum_strategy}_{cfg.task.fit_config.run_config.epochs}_{cfg.dataset.name}_{cfg.dataset.alpha}"
     with wandb_init(
         cfg.use_wandb,
         **cfg.wandb.setup,
@@ -116,6 +117,7 @@ def main(cfg: DictConfig) -> None:
         config=wandb_config,
         resume="must" if cfg.wandb_resume and wandb_id is not None else "allow",
         id=wandb_id if wandb_id is not None else uuid.uuid4().hex,
+        name=wandb_name,
     ) as run:
         if cfg.use_wandb:
             save_wandb_run_details(cast(Run, run), working_dir / Folders.WANDB)

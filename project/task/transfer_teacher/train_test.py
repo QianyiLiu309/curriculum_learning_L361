@@ -116,9 +116,15 @@ def train(  # pylint: disable=too-many-arguments
     )
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
+    final_epoch_per_class_loss = {}
+    num_samples_per_class = {}
+
     for i in range(config.epochs):
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
+        for j in range(10):
+            final_epoch_per_class_loss[j] = 0.0
+            num_samples_per_class[j] = 0
         for data, target in trainloader_filtered:
             data, target = (
                 data.to(
@@ -131,6 +137,10 @@ def train(  # pylint: disable=too-many-arguments
             loss = criterion(output, target)
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
+            for j in range(len(target)):
+                final_epoch_per_class_loss[target[j].item()] += loss.item()
+                num_samples_per_class[target[j].item()] += 1
+
             loss.backward()
             optimizer.step()
         print(
@@ -138,13 +148,18 @@ def train(  # pylint: disable=too-many-arguments
             f" {final_epoch_per_sample_loss / len(trainloader_filtered.dataset)},"
             f" accuracy: {num_correct / len(trainloader_filtered.dataset)}"
         )
-
-    return len(cast(Sized, trainloader_filtered.dataset)), {
+    metrics = {
         "train_loss": final_epoch_per_sample_loss
         / len(cast(Sized, trainloader_filtered.dataset)),
         "train_accuracy": float(num_correct)
         / len(cast(Sized, trainloader_filtered.dataset)),
     }
+    for i in range(10):
+        metrics[f"class_{i}_train_accuracy"] = float(
+            final_epoch_per_class_loss[i] / (num_samples_per_class[i] + 1e-10)
+        )
+
+    return len(cast(Sized, trainloader_filtered.dataset)), metrics
 
 
 class TestConfig(BaseModel):

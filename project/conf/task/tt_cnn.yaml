@@ -47,5 +47,18 @@ fed_test_config:
 net_config_initial_parameters: {}
 
 # The names of metrics you wish to aggregate
-fit_metrics: [train_loss, train_accuracy]
+fit_metrics:
+  - train_loss
+  - train_accuracy
+  - class_0_train_accuracy
+  - class_1_train_accuracy
+  - class_2_train_accuracy
+  - class_3_train_accuracy
+  - class_4_train_accuracy
+  - class_5_train_accuracy
+  - class_6_train_accuracy
+  - class_7_train_accuracy
+  - class_8_train_accuracy
+  - class_9_train_accuracy
+
 evaluate_metrics: [test_accuracy]

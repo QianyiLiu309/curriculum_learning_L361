@@ -21,4 +21,4 @@ val_ratio: 0.1
 seed: 1337
 
 # LDA prior concentration parameter for data partitioning"
-alpha: 1000.0
+alpha: 0.1

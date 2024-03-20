@@ -61,7 +61,7 @@ wandb_id: null
 # change the name
 wandb:
   setup:
-    project: transfer_teacher
+    project: 0.1_further_explore
     tags:
       - strategy_${strategy.name}
       - seed_${fed.seed}

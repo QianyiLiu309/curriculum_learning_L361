@@ -34,6 +34,8 @@ from project.task.cifar10_classification.dispatch import (
     dispatch_train as dispatch_cifar10_train,
 )
 
+# cifar100_classification
+
 # femnist_classification
 from project.task.femnist_classification.dispatch import (
     dispatch_config as dispatch_femnist_config,

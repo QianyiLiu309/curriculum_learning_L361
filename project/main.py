@@ -307,7 +307,7 @@ def main(cfg: DictConfig) -> None:
 
             # Client generation function for Ray
             # Do not change
-            if cfg.task.train_structure == "ML":
+            if cfg.task.train_structure in {"ML", "DITTO"}:
                 client_generator: ClientGen = get_mutual_learning_client_generator(
                     working_dir=working_dir,
                     net_generator=net_generator,

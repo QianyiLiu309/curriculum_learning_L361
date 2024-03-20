@@ -16,7 +16,8 @@ fit_config:
   # The train function requires epochs and learning_rate
   run_config:
     epochs: 10
-    learning_rate: 0.01
+    learning_rate: 0.03
+    momentum: 0.9
   # No extra config
   extra:
     checkpoint_dir: outputs/tmp_local_models

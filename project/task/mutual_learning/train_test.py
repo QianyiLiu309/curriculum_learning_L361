@@ -35,6 +35,7 @@ class TrainConfig(BaseModel):
     device: torch.device
     epochs: int
     learning_rate: float
+    momentum: float
     percentage: float | None
     is_anti: bool | None
     is_random: bool | None
@@ -112,7 +113,9 @@ def train(  # pylint: disable=too-many-arguments
         net.parameters(),
         lr=config.learning_rate,
     )
-    optimiser_local = torch.optim.SGD(local_net.parameters(), lr=config.learning_rate)
+    optimiser_local = torch.optim.SGD(
+        local_net.parameters(), lr=config.learning_rate, momentum=config.momentum
+    )
 
     final_epoch_per_sample_loss = 0.0
     num_correct = 0

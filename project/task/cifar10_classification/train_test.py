@@ -29,6 +29,7 @@ class TrainConfig(BaseModel):
     device: torch.device
     epochs: int
     learning_rate: float
+    momentum: float
 
     class Config:
         """Setting to allow any types, including library ones like torch.device."""
@@ -82,6 +83,7 @@ def train(  # pylint: disable=too-many-arguments
     optimizer = torch.optim.SGD(
         net.parameters(),
         lr=config.learning_rate,
+        momentum=config.momentum,
     )
     final_epoch_per_sample_loss = 0.0
     num_correct = 0

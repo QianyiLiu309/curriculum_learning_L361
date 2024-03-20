@@ -17,6 +17,7 @@ fit_config:
   run_config:
     epochs: 10
     learning_rate: 0.01
+    momentum: 0.9
   # No extra config
   extra: {}
 

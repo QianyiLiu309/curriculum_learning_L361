@@ -35,6 +35,16 @@ from project.task.cifar10_classification.dispatch import (
 )
 
 # cifar100_classification
+from project.task.cifar100_classification.dispatch import (
+    dispatch_config as dispatch_cifar100_config,
+)
+from project.task.cifar100_classification.dispatch import (
+    dispatch_data as dispatch_cifar100_data,
+)
+from project.task.cifar100_classification.dispatch import (
+    dispatch_train as dispatch_cifar100_train,
+)
+
 
 # femnist_classification
 from project.task.femnist_classification.dispatch import (
@@ -106,6 +116,7 @@ def dispatch_train(cfg: DictConfig) -> TrainStructure:
         dispatch_default_train,
         dispatch_mnist_train,
         dispatch_cifar10_train,
+        dispatch_cifar100_train,
         dispatch_femnist_train,
         dispatch_self_paced_learning_train,
         dispatch_transfer_teacher_train,
@@ -149,6 +160,7 @@ def dispatch_data(cfg: DictConfig) -> DataStructure:
         dispatch_transfer_teacher_data,
         dispatch_self_paced_learning_data,
         dispatch_femnist_data,
+        dispatch_cifar100_data,
         dispatch_cifar10_data,
         dispatch_mnist_data,
         dispatch_default_data,
@@ -190,6 +202,7 @@ def dispatch_config(cfg: DictConfig) -> ConfigStructure:
         dispatch_mutual_learning_config,
         dispatch_transfer_teacher_config,
         dispatch_self_paced_learning_config,
+        dispatch_cifar100_config,
         dispatch_femnist_config,
         dispatch_cifar10_config,
         dispatch_mnist_config,

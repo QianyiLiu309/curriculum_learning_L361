@@ -112,6 +112,7 @@ def train(  # pylint: disable=too-many-arguments
     optimizer = torch.optim.SGD(
         net.parameters(),
         lr=config.learning_rate,
+        momentum=config.momentum,
     )
     optimiser_local = torch.optim.SGD(
         local_net.parameters(), lr=config.learning_rate, momentum=config.momentum
@@ -121,9 +122,11 @@ def train(  # pylint: disable=too-many-arguments
     num_correct = 0
     final_epoch_per_sample_loss_local = 0.0
     num_correct_local = 0
+
+    net.train()
+    local_net.train()
+
     for i in range(config.epochs):
-        net.train()
-        local_net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
         final_epoch_per_sample_loss_local = 0.0
@@ -149,6 +152,7 @@ def train(  # pylint: disable=too-many-arguments
             # )
 
             loss = criterion(output, target) + kl_div_to_net
+            print(f"loss: {criterion(output, target)},  KL div loss: {kl_div_to_net}")
             # loss_local = criterion(output_local, target) + kl_div_to_local_net
             loss_local = criterion(output_local, target)
 

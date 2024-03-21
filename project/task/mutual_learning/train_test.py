@@ -143,13 +143,14 @@ def train(  # pylint: disable=too-many-arguments
                 F.log_softmax(output, dim=1),
                 F.softmax(output_local.detach(), dim=1),
             )
-            kl_div_to_local_net = kl_div_loss(
-                F.log_softmax(output_local, dim=1),
-                F.softmax(output.detach(), dim=1),
-            )
+            # kl_div_to_local_net = kl_div_loss(
+            #     F.log_softmax(output_local, dim=1),
+            #     F.softmax(output.detach(), dim=1),
+            # )
 
             loss = criterion(output, target) + kl_div_to_net
-            loss_local = criterion(output_local, target) + kl_div_to_local_net
+            # loss_local = criterion(output_local, target) + kl_div_to_local_net
+            loss_local = criterion(output_local, target)
 
             optimizer.zero_grad()
             loss.backward()

@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 from typing import cast
 import uuid
-import shutil
 
 import flwr as fl
 import hydra
@@ -316,9 +315,6 @@ def main(cfg: DictConfig) -> None:
                     test=test_func,
                     client_seed_generator=client_seed_rng,
                 )
-                checkpoint_dir = cfg.task.fit_config.extra.checkpoint_dir
-                shutil.rmtree(checkpoint_dir, ignore_errors=True)
-                Path(checkpoint_dir).mkdir(parents=True, exist_ok=False)
             else:
                 client_generator: ClientGen = get_client_generator(  # type: ignore  [no-redef]
                     working_dir=working_dir,
@@ -331,15 +327,16 @@ def main(cfg: DictConfig) -> None:
 
             # Runs fit and eval on either one client or all of them
             # Avoids launching ray for debugging purposes
-            test_client(
-                test_all_clients=cfg.debug_clients.all,
-                test_one_client=cfg.debug_clients.one,
-                client_generator=client_generator,
-                initial_parameters=initial_parameters,
-                total_clients=cfg.fed.num_total_clients,
-                on_fit_config_fn=on_fit_config_fn,
-                on_evaluate_config_fn=on_evaluate_config_fn,
-            )
+            if cfg.task.train_structure not in {"ML", "DITTO"}:
+                test_client(
+                    test_all_clients=cfg.debug_clients.all,
+                    test_one_client=cfg.debug_clients.one,
+                    client_generator=client_generator,
+                    initial_parameters=initial_parameters,
+                    total_clients=cfg.fed.num_total_clients,
+                    on_fit_config_fn=on_fit_config_fn,
+                    on_evaluate_config_fn=on_evaluate_config_fn,
+                )
 
             # Start Simulation
             # The ray_init_args are only necessary

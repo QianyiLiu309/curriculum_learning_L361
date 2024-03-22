@@ -14,7 +14,7 @@ cpus_per_client: 1
 gpus_per_client: 0.1
 
 # Seed for client selection
-seed: 1337
+seed: 1337  # 133, 13
 
 # Settings for loading the initial parameters 
 # used by the server

@@ -115,6 +115,17 @@ class FedAvgCL(fl.server.strategy.FedAvg):
             percentage = self.b + (1 - self.b) * (
                 math.exp(10 * server_round / self.a / self.num_rounds) - 1
             ) / (math.exp(10) - 1)
+        elif self.curriculum_strategy == "root":
+            percentage = self.b + (1 - self.b) * math.sqrt(server_round) / math.sqrt(
+                self.a * self.num_rounds
+            )
+        elif self.curriculum_strategy == "quad":
+            percentage = self.b + (1 - self.b) * (server_round**2) / (
+                (self.a * self.num_rounds) ** 2
+            )
+        elif self.curriculum_strategy == "step":
+            percentage = self.b + math.floor(server_round / self.a / self.num_rounds)
+
         percentage = min(percentage, 1.0)
         print(f"-------------Strategy: {self.curriculum_strategy}---------------------")
         print(f"------------Percentage: {percentage}----------------------------------")

@@ -115,18 +115,18 @@ def train(  # pylint: disable=too-many-arguments
         local_net.parameters(), lr=config.learning_rate, momentum=config.momentum
     )
 
-    frac = 1.0  # trade-off between CrossEntropy loss and knowledge distillation
+    frac = 10  # trade-off between CrossEntropy loss and knowledge distillation
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
     final_epoch_per_sample_loss_local = 0.0
     num_correct_local = 0
     for i in range(config.epochs):
         net.train()
-        local_net.train()
+        # local_net.train()
         final_epoch_per_sample_loss = 0.0
         num_correct = 0
-        final_epoch_per_sample_loss_local = 0.0
-        num_correct_local = 0
+        # final_epoch_per_sample_loss_local = 0.0
+        # num_correct_local = 0
         for data, target in trainloader_filtered:
             data, target = (
                 data.to(
@@ -136,38 +136,75 @@ def train(  # pylint: disable=too-many-arguments
             )
 
             output = net(data)
-            output_local = local_net(data)
+            # output_local = local_net(data)
 
-            w_local = torch.hstack(
-                [param.flatten() for param in local_net.parameters()]
-            )
-            w_global_frozen = torch.hstack(
-                [param.flatten() for param in frozen_teacher_net.parameters()]
-            )
-            ditto_sim = torch.sum((w_local - w_global_frozen) ** 2)
+            # w_local = torch.hstack(
+            #     [param.flatten() for param in copy.deepcopy(local_net).parameters()]
+            # )
+            # w_global_frozen = torch.hstack(
+            #     [param.flatten() for param in net.parameters()]
+            # )
+            # w_local = torch.hstack(
+            #     [param.flatten() for param in local_net.parameters()]
+            # )
+            # w_global_frozen = torch.hstack(
+            #     [param.flatten() for param in frozen_teacher_net.parameters()]
+            # )
+            # ditto_sim = torch.sum((w_local - w_global_frozen) ** 2)
 
             loss = criterion(output, target)
-            loss_local = criterion(output_local, target) + frac * ditto_sim / 2.0
-            print(f"-----------------Ditto: {ditto_sim.item()}--------------------")
+            # loss_local = criterion(output_local, target) + frac * ditto_sim / 2.0
+            # print(f"-----------------Ditto: {ditto_sim.item()}--------------------")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            optimiser_local.zero_grad()
-            loss_local.backward()
-            optimiser_local.step()
+            # optimiser_local.zero_grad()
+            # loss_local.backward()
+            # optimiser_local.step()
 
             final_epoch_per_sample_loss += loss.item()
             num_correct += (output.max(1)[1] == target).clone().detach().sum().item()
 
-            final_epoch_per_sample_loss_local += loss.item()
-            num_correct_local += (
-                (output_local.max(1)[1] == target).clone().detach().sum().item()
-            )
+            # final_epoch_per_sample_loss_local += loss.item()
+            # num_correct_local += (
+            #     (output_local.max(1)[1] == target).clone().detach().sum().item()
+            # )
         print(
             f"Epoch {i + 1}, loss:"
             f" {final_epoch_per_sample_loss / len(trainloader_filtered.dataset)},"
             f" accuracy: {num_correct / len(trainloader_filtered.dataset)}, local loss"
+            # f" {final_epoch_per_sample_loss_local / len(trainloader_filtered.dataset)},"
+            # f" local accuracy: {num_correct_local / len(trainloader_filtered.dataset)}"
+        )
+    for i in range(config.epochs):
+        local_net.train()
+        final_epoch_per_sample_loss_local = 0.0
+        num_correct_local = 0
+        for data, target in trainloader_filtered:
+            data, target = (
+                data.to(
+                    config.device,
+                ),
+                target.to(config.device),
+            )
+        output_local = local_net(data)
+        w_local = torch.hstack([param.flatten() for param in local_net.parameters()])
+        w_global_frozen = torch.hstack(
+            [param.flatten() for param in copy.deepcopy(net).parameters()]
+        )
+        ditto_sim = torch.sum((w_local - w_global_frozen) ** 2)
+        loss_local = criterion(output_local, target) + frac * ditto_sim / 2.0
+        print(f"-----------------Ditto: {ditto_sim.item()}--------------------")
+        optimiser_local.zero_grad()
+        loss_local.backward()
+        optimiser_local.step()
+        final_epoch_per_sample_loss_local += loss.item()
+        num_correct_local += (
+            (output_local.max(1)[1] == target).clone().detach().sum().item()
+        )
+        print(
+            f"Epoch {i + 1}, loss:"
             f" {final_epoch_per_sample_loss_local / len(trainloader_filtered.dataset)},"
             f" local accuracy: {num_correct_local / len(trainloader_filtered.dataset)}"
         )

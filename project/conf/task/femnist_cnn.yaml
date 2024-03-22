@@ -15,7 +15,7 @@ fit_config:
     batch_size: 64
   # The train function requires epochs and learning_rate
   run_config:
-    epochs: 1
+    epochs: 10
     learning_rate: 0.01
     weight_decay: 0.001
   # No extra config

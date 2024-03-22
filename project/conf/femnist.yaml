@@ -67,7 +67,7 @@ wandb:
       - seed_${fed.seed}
       - dataset_${dataset.name}
       - task_${task.model_and_data}
-    entity: null
+    entity: fl-curriculum-learning
     mode: online
 
 # For Ray cluster usage

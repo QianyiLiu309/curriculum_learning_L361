@@ -84,6 +84,7 @@ def train(  # pylint: disable=too-many-arguments
         net.parameters(),
         lr=config.learning_rate,
         weight_decay=config.weight_decay,
+        # momentum=config.momentum,
     )
     final_epoch_per_sample_loss = 0.0
     num_correct = 0
